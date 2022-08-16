@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <toolshelf name="blender_houdini" label="Blender AppLink">
+    <memberTool name="export_to_blender"/>
+  </toolshelf>
+
+  <tool name="export_to_blender" label="Export" icon="hicon:/SVGIcons.index?SOP_alembic.svg">
+    <script scriptType="python"><![CDATA[import houdini_manual
+import importlib
+importlib.reload(houdini_manual)
+houdini_manual.houdini_export()]]></script>
+  </tool>
+</shelfDocument>

@@ -1,0 +1,3 @@
+#+STARTUP: indent
+* Blender-Houdini Bridge
+This program automates geometry interchange between Blender and Houdini.
