@@ -8,7 +8,6 @@ import hou
 def houdini_export():
     """Exports selected SOPs to Alembic files
     in operating system's temp path."""
-
     temp_path = Path(tempfile.gettempdir(), 'houdini_blender')
     verify_temp_path(temp_path)
 
@@ -53,6 +52,11 @@ def houdini_export():
     hou.ui.setStatusMessage('Done exporting.')
 
 
+def houdini_import():
+    """Imports Alembic files to Houdini."""
+    pass
+
+
 def verify_temp_path(temp_path):
     """Checks if temporary directory exists. Creates it if it doesn't."""
     if Path.exists(temp_path):
@@ -91,4 +95,4 @@ def remove_file(file_path):
 
 
 if __name__ == '__main__':
-    houdini_export()
+    print('Script must be launched from inside Houdini.')
