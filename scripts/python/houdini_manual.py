@@ -5,11 +5,15 @@ from uuid import uuid1
 import hou
 
 
+TEMP_PATH = Path(tempfile.gettempdir(), 'houdini_blender')
+BLEND_IMPORT_FILE = Path(TEMP_PATH, 'blend_import')
+HOU_IMPORT_FILE = Path(TEMP_PATH, 'hou_import')
+
+
 def houdini_export():
     """Exports selected SOPs to Alembic files
     in operating system's temp path."""
-    temp_path = Path(tempfile.gettempdir(), 'houdini_blender')
-    verify_temp_path(temp_path)
+    verify_temp_path()
 
     sops = hou.selectedNodes()
 
@@ -18,13 +22,11 @@ def houdini_export():
                                 severity=hou.severityType.Warning)
         sys.exit(1)
 
-    blend_import_file = Path(temp_path, 'blend_import')
-
     # Remove files specified in existing Blender import list.
-    purge_old_files(blend_import_file)
+    purge_old_files()
     # First, the file containing Alembics for Blender import
     # needs to be removed and recreated.
-    remove_file(blend_import_file)
+    remove_file(BLEND_IMPORT_FILE)
 
     # Configure and export selected SOPs.
     for sop in sops:
@@ -32,7 +34,7 @@ def houdini_export():
         abc_rop.setFirstInput(sop)
 
         filename = sop.name() + '_' + uuid1().hex + '.abc'
-        filepath = Path(temp_path, filename).resolve()
+        filepath = Path(TEMP_PATH, filename).resolve()
 
         abc_rop.setParms({
             'filename': str(filepath),
@@ -45,8 +47,7 @@ def houdini_export():
         abc_rop.destroy()
 
         # Write output file path to a file containing Blender's import list.
-        blend_import_file = Path(temp_path, 'blend_import')
-        with blend_import_file.open('a', encoding='utf-8') as target_file:
+        with BLEND_IMPORT_FILE.open('a', encoding='utf-8') as target_file:
             target_file.write(f'{filepath}\n')
 
     hou.ui.setStatusMessage('Done exporting.')
@@ -54,28 +55,92 @@ def houdini_export():
 
 def houdini_import():
     """Imports Alembic files to Houdini."""
-    pass
+    if not Path.exists(HOU_IMPORT_FILE):
+        hou.ui.setStatusMessage('Nothing to import.',
+                                severity=hou.severityType.ImportantMessage)
+        sys.exit(0)
+
+    sops = hou.selectedNodes()
+
+    if len(sops) == 0:
+        # Import somewhere in the scene.
+        hou.ui.setStatusMessage('Select exactly one SOP',
+                                severity=hou.severityType.Error)
+        sys.exit(1)
+
+    sop = sops[0]
+    file_paths = []
+    missing = False
+
+    with HOU_IMPORT_FILE.open('r', encoding='utf-8') as source_file:
+        for index, line in enumerate(source_file.readlines()):
+            if not Path(line.strip()).exists():
+                missing = True
+            else:
+                file_paths.append(line.strip())
+
+    if len(file_paths) == 0:
+        hou.ui.setStatusMessage('The import list appears to be empty.',
+                                severity=hou.severityType.Error)
+        return
+
+    # Stores instances of nodes. Used in automatic layout.
+    instances = []
+
+    # Construct the network.
+    for path in file_paths:
+        abc = sop.parent().createNode('alembic')
+        abc.setParms({
+            'fileName': path
+        })
+
+        abc.setHardLocked(True)
+        abc.setFirstInput(sop)
+        instances.append(abc)
+
+        unpack = sop.parent().createNode('unpack')
+        unpack.setFirstInput(abc)
+        instances.append(unpack)
+
+        convert = sop.parent().createNode('convert')
+        convert.setFirstInput(unpack)
+        instances.append(convert)
+
+        for node in instances:
+            node.moveToGoodPosition(move_inputs=False, move_unconnected=False)
+
+        abc.setFirstInput(None)
+
+    if missing:
+        hou.ui.setStatusMessage('Done, but one or more files were missing.',
+                                severity=hou.severityType.Warning)
+        return
+
+    hou.ui.setStatusMessage('Done importing files.',
+                            severity=hou.severityType.Message)
 
 
-def verify_temp_path(temp_path):
+def verify_temp_path():
     """Checks if temporary directory exists. Creates it if it doesn't."""
-    if Path.exists(temp_path):
-        if Path.is_dir(temp_path):
+    # BUG: That's not exists() is invoked. It does not accept arguments!
+    if Path.exists(TEMP_PATH):
+        if Path.is_dir(TEMP_PATH):
             return
         hou.ui.setStatusMessage('Temp path exists, but is a file.',
                                 severity=hou.severityType.Error)
         sys.exit(1)
     else:
-        Path.mkdir(temp_path)
+        Path.mkdir(TEMP_PATH)
 
 
-def purge_old_files(list_file):
+def purge_old_files():
     """Removes all files specified in a file passed as argument.
     Provided path must be absolute."""
-    if not Path.exists(list_file):
+    if not Path.exists(BLEND_IMPORT_FILE):
         return
-
-    with list_file.open('r', encoding='utf-8') as source_file:
+    # BUG: When one of the listed files is missing,
+    #      Python throws FileNotFoundError.
+    with BLEND_IMPORT_FILE.open('r', encoding='utf-8') as source_file:
         lines = source_file.readlines()
         for index, line in enumerate(lines):
             pure_path = PurePath(line.strip())
