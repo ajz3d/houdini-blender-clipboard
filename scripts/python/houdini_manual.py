@@ -62,8 +62,8 @@ def houdini_import():
 
     sops = hou.selectedNodes()
 
+    # TODO: Allow for importing without the requirement of selecting a SOP.
     if len(sops) == 0:
-        # Import somewhere in the scene.
         hou.ui.setStatusMessage('Select exactly one SOP',
                                 severity=hou.severityType.Error)
         sys.exit(1)
@@ -122,22 +122,24 @@ def houdini_import():
 
 def verify_temp_path():
     """Checks if temporary directory exists. Creates it if it doesn't."""
-    # BUG: That's not exists() is invoked. It does not accept arguments!
-    if Path.exists(TEMP_PATH):
-        if Path.is_dir(TEMP_PATH):
+    if TEMP_PATH.exists():
+        if TEMP_PATH.is_dir():
             return
         hou.ui.setStatusMessage('Temp path exists, but is a file.',
                                 severity=hou.severityType.Error)
         sys.exit(1)
     else:
-        Path.mkdir(TEMP_PATH)
+        TEMP_PATH.mkdir()
 
 
 def purge_old_files():
-    """Removes all files specified in a file passed as argument.
-    Provided path must be absolute."""
-    if not Path.exists(BLEND_IMPORT_FILE):
+    """Removes all files listed in BLEND_FILE."""
+    if not BLEND_IMPORT_FILE.exists():
         return
+    if BLEND_IMPORT_FILE.is_dir():
+        hou.ui.setStatusMessage('File "blend_import" is a directory.',
+                                severity=hou.severityType.Error)
+        sys.exit(2)
     # BUG: When one of the listed files is missing,
     #      Python throws FileNotFoundError.
     with BLEND_IMPORT_FILE.open('r', encoding='utf-8') as source_file:
@@ -147,16 +149,16 @@ def purge_old_files():
             # Safeguard which ensures that nothing
             # outside of system's tempdir is removed.
             if PurePath(tempfile.gettempdir()) in pure_path.parents:
-                Path(pure_path).unlink()
+                Path(pure_path).unlink(missing_ok=True)
 
 
 def remove_file(file_path):
-    """Removes a specific file or directory."""
-    if Path.exists(file_path):
-        if Path.is_dir(file_path):
-            Path.rmdir(file_path)
+    """Removes a specific file or directory. Accepts pathlib.Path objects."""
+    if file_path.exists():
+        if file_path.is_dir():
+            file_path.rmdir()
         else:
-            Path.unlink(file_path)
+            file_path.unlink()
 
 
 if __name__ == '__main__':
