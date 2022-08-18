@@ -140,8 +140,6 @@ def purge_old_files():
         hou.ui.setStatusMessage('File "blend_import" is a directory.',
                                 severity=hou.severityType.Error)
         sys.exit(2)
-    # BUG: When one of the listed files is missing,
-    #      Python throws FileNotFoundError.
     with BLEND_IMPORT_FILE.open('r', encoding='utf-8') as source_file:
         lines = source_file.readlines()
         for index, line in enumerate(lines):
