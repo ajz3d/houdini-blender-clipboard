@@ -1,9 +1,0 @@
-{
-    "path": "$BLENDER_APPLINK",
-    "enable": "houdini_version >= '19.0'",
-    "env": [
-        {
-            "BLENDER_APPLINK": "$HOUDINI_PACKAGE_PATH/blender-houdini-applink"
-        }
-    ]
-}

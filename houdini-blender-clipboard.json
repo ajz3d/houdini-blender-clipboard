@@ -1,0 +1,9 @@
+{
+    "path": "$BLENDER_APPLINK",
+    "enable": "houdini_version >= '19.5'",
+    "env": [
+        {
+            "BLENDER_APPLINK": "$HOUDINI_PACKAGE_PATH/houdini-blender-clipboard"
+        }
+    ]
+}

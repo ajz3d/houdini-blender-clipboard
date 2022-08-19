@@ -21,7 +21,7 @@ cp houdini-blender-applink/houdini-blender-applink.json ./
    #+end_src
 3. Symlink ~hou-blend-clipboard/scripts/python~ to addons directory of your Blender installation (~~/.config/blender/#.##/scripts/addons~):
    #+begin_src sh
-ln -sf $HOUDINI_USER_PREF_DIR/packages/houdini-blender-clipboard ~/.config/blender/#.##/scripts/addons/houdini_blender
+ln -sf $HOUDINI_USER_PREF_DIR/packages/houdini-blender-clipboard/scripts/python ~/.config/blender/#.##/scripts/addons/houdini_blender
   #+end_src
 4. Open Houdini and add "Blender Clipboard" to your shelf set.
 5. Open Blender and enable "Houdini Clipboard" Import-Export addon.
