@@ -1,32 +1,33 @@
 import sys
-from pathlib import PurePath, Path
-import tempfile
+from pathlib import Path
 from uuid import uuid1
 import hou
-
-
-TEMP_PATH = Path(tempfile.gettempdir(), 'houdini_blender')
-BLEND_IMPORT_FILE = Path(TEMP_PATH, 'blend_import')
-HOU_IMPORT_FILE = Path(TEMP_PATH, 'hou_import')
+import common
 
 
 def houdini_export():
     """Exports selected SOPs to Alembic files
     in operating system's temp path."""
-    verify_temp_path()
-
+    if not common.temp_path_exists(common.TEMP_PATH):
+        hou.ui.setStatusMessage('Temp path is a file. Aborting.',
+                                severity=hou.severityType.Error)
+        return
     sops = hou.selectedNodes()
 
     if len(sops) == 0:
         hou.ui.setStatusMessage('Nothing to export.',
-                                severity=hou.severityType.Warning)
+                                severity=hou.severityType.ImportantMessage)
         sys.exit(1)
 
     # Remove files specified in existing Blender import list.
-    purge_old_files()
+    if not common.purge_old_files(common.BLEND_IMPORT_FILE):
+        hou.ui.setStatusMessage('List file is a directory!',
+                                severity=hou.severityType.Error)
+        return
+
     # First, the file containing Alembics for Blender import
     # needs to be removed and recreated.
-    remove_file(BLEND_IMPORT_FILE)
+    common.remove_file(common.BLEND_IMPORT_FILE)
 
     # Configure and export selected SOPs.
     for sop in sops:
@@ -34,7 +35,7 @@ def houdini_export():
         abc_rop.setFirstInput(sop)
 
         filename = sop.name() + '_' + uuid1().hex + '.abc'
-        filepath = Path(TEMP_PATH, filename).resolve()
+        filepath = Path(common.TEMP_PATH, filename).resolve()
 
         abc_rop.setParms({
             'filename': str(filepath),
@@ -47,7 +48,7 @@ def houdini_export():
         abc_rop.destroy()
 
         # Write output file path to a file containing Blender's import list.
-        with BLEND_IMPORT_FILE.open('a', encoding='utf-8') as target_file:
+        with common.BLEND_IMPORT_FILE.open('a', encoding='utf-8') as target_file:
             target_file.write(f'{filepath}\n')
 
     hou.ui.setStatusMessage('Done exporting.')
@@ -55,7 +56,7 @@ def houdini_export():
 
 def houdini_import():
     """Imports Alembic files to Houdini."""
-    if not Path.exists(HOU_IMPORT_FILE):
+    if not common.HOU_IMPORT_FILE.exists():
         hou.ui.setStatusMessage('Nothing to import.',
                                 severity=hou.severityType.ImportantMessage)
         sys.exit(0)
@@ -72,7 +73,12 @@ def houdini_import():
     file_paths = []
     missing = False
 
-    with HOU_IMPORT_FILE.open('r', encoding='utf-8') as source_file:
+    if common.HOU_IMPORT_FILE.is_dir():
+        hou.ui.setStatusMessage('The import list is a directory!',
+                                severity=hou.severityType.Error)
+        return
+
+    with common.HOU_IMPORT_FILE.open('r', encoding='utf-8') as source_file:
         for index, line in enumerate(source_file.readlines()):
             if not Path(line.strip()).exists():
                 missing = True
@@ -118,45 +124,6 @@ def houdini_import():
 
     hou.ui.setStatusMessage('Done importing files.',
                             severity=hou.severityType.Message)
-
-
-def verify_temp_path():
-    """Checks if temporary directory exists. Creates it if it doesn't."""
-    if TEMP_PATH.exists():
-        if TEMP_PATH.is_dir():
-            return
-        hou.ui.setStatusMessage('Temp path exists, but is a file.',
-                                severity=hou.severityType.Error)
-        sys.exit(1)
-    else:
-        TEMP_PATH.mkdir()
-
-
-def purge_old_files():
-    """Removes all files listed in BLEND_FILE."""
-    if not BLEND_IMPORT_FILE.exists():
-        return
-    if BLEND_IMPORT_FILE.is_dir():
-        hou.ui.setStatusMessage('File "blend_import" is a directory.',
-                                severity=hou.severityType.Error)
-        sys.exit(2)
-    with BLEND_IMPORT_FILE.open('r', encoding='utf-8') as source_file:
-        lines = source_file.readlines()
-        for index, line in enumerate(lines):
-            pure_path = PurePath(line.strip())
-            # Safeguard which ensures that nothing
-            # outside of system's tempdir is removed.
-            if PurePath(tempfile.gettempdir()) in pure_path.parents:
-                Path(pure_path).unlink(missing_ok=True)
-
-
-def remove_file(file_path):
-    """Removes a specific file or directory. Accepts pathlib.Path objects."""
-    if file_path.exists():
-        if file_path.is_dir():
-            file_path.rmdir()
-        else:
-            file_path.unlink()
 
 
 if __name__ == '__main__':

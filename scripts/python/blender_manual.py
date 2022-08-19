@@ -2,6 +2,9 @@
 import bpy
 import tempfile
 from pathlib import Path, PurePath
+from uuid import uuid1
+from . import common
+
 
 TEMP_PATH = Path(tempfile.gettempdir(), 'houdini_blender')
 BLEND_IMPORT_FILE = Path(TEMP_PATH, 'blend_import')
@@ -13,7 +16,12 @@ class HoudiniImportOp(bpy.types.Operator):
     bl_description = 'Pastes yanked objects into the scene.'
 
     def execute(self, context):
-        self.report({'INFO'}, f'This is {self.bl_idname}')
+        # Check if temporary directory exists and is not a file.
+        if not common.temp_path_exists(common.TEMP_PATH):
+            self.report({'INFO'}, 'Temp path is a file. Aborting.')
+            return {'CANCELLED'}
+
+        # Check if import file exists.
         file_present = file_exists(BLEND_IMPORT_FILE)
         if file_present == 1:
             self.report({'INFO'}, 'Nothing to import.')
@@ -41,6 +49,9 @@ class HoudiniImportOp(bpy.types.Operator):
         for path in file_paths:
             bpy.ops.wm.alembic_import(filepath=path, relative_path=False, set_frame_range=False)
 
+        if missing:
+            self.report({'INFO'}, 'Done, but some files were missing.')
+
         return {'FINISHED'}
 
 
@@ -50,8 +61,45 @@ class HoudiniExportOp(bpy.types.Operator):
     bl_description = 'Yanks selected objects to temporary directory.'
 
     def execute(self, context):
-        print("HOUDINI_EXPORT")
-        self.report({'INFO'}, f'This is {self.bl_idname}')
+        # Check for temporary directory.
+        if not common.temp_path_exists(common.TEMP_PATH):
+            self.report({'INFO'}, 'Temp path is a file. Aborting.')
+            return {'CANCELLED'}
+
+        selection = bpy.context.selected_objects
+        # Ignore objects that are not MESH.
+        for obj in list(selection):
+            if not obj.type == 'MESH':
+                selection.remove(obj)
+
+        if len(selection) == 0:
+            self.report({'INFO'}, 'Nothing to export.')
+            return {'FINISHED'}
+
+        # Remove files specified in existing Houdini import list.
+        if not common.purge_old_files(common.HOU_IMPORT_FILE):
+            self.report({'ERROR'}, 'List file is a directory.')
+            return {'CANCELLED'}
+
+        # First, the file containing Alembics for Houdini import
+        # needs do be removed and recreated.
+        common.remove_file(common.HOU_IMPORT_FILE)
+
+        # Construct path for exported Alembic file.
+        filename = str(Path(common.TEMP_PATH, f'hou_{uuid1().hex}.abc').resolve())
+
+        # Export selected objects.
+        bpy.ops.wm.alembic_export(
+            filepath=filename,
+            selected=True,
+            subdiv_schema=True
+        )
+
+        # Write exported path to Houdini import file.
+        with common.HOU_IMPORT_FILE.open('a', encoding='utf-8') as target_file:
+            target_file.write(f'{filename}\n')
+
+        self.report({'INFO'}, 'Done exporting.')
         return {'FINISHED'}
 
 
@@ -65,15 +113,12 @@ class HoudiniClipboardPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         row = layout.row()
+        # TODO: Add a toggle that enables replacement of existing objects.
+        # I'm not sure if it's possible as there seems to be no way of
+        # knowing what objects reside in Alembic files.
+        # TODO: Add a toggle which enables exporting objects to separate files.
         row.operator(HoudiniImportOp.bl_idname, icon='PASTEDOWN')
         row.operator(HoudiniExportOp.bl_idname, icon='COPYDOWN')
-
-
-classes = (
-    HoudiniClipboardPanel,
-    HoudiniImportOp,
-    HoudiniExportOp,
-)
 
 
 def file_exists(file_path):
@@ -90,6 +135,13 @@ def blender_import():
     pass
 
 
+classes = (
+    HoudiniClipboardPanel,
+    HoudiniImportOp,
+    HoudiniExportOp,
+)
+
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -98,7 +150,3 @@ def register():
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
-
-
-if __name__ == '__main__':
-    register()
