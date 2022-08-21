@@ -85,6 +85,7 @@ def houdini_import():
                                 severity=hou.severityType.Error)
         sys.exit(1)
 
+    # Geometry will be imported near the first SOP. We don't need the rest.
     sop = sops[0]
     file_paths = []
     missing = False
@@ -110,28 +111,43 @@ def houdini_import():
     instances = []
 
     # Construct the network.
-    for path in file_paths:
-        abc = sop.parent().createNode('alembic')
+    # Special case for selected Alembic SOP and only one geometry file
+    # to import. Replace filename with path to the new one.
+    if sop.type().name() == 'alembic' and len(file_paths) == 1:
+        abc = sop
+        abc.setHardLocked(False)
         abc.setParms({
-            'fileName': path
+            'fileName': file_paths[0]
         })
-
+        abc.parm('reload').pressButton()
         abc.setHardLocked(True)
-        abc.setFirstInput(sop)
-        instances.append(abc)
 
-        unpack = sop.parent().createNode('unpack')
-        unpack.setFirstInput(abc)
-        instances.append(unpack)
+    # Otherwise, create the whole network.
+    else:
+        for path in file_paths:
+            abc = sop.parent().createNode('alembic')
+            abc.setParms({
+                'fileName': path
+            })
+            abc.setHardLocked(True)
+            abc.setFirstInput(sop)
+            instances.append(abc)
 
-        convert = sop.parent().createNode('convert')
-        convert.setFirstInput(unpack)
-        instances.append(convert)
+            unpack = sop.parent().createNode('unpack')
+            unpack.setFirstInput(abc)
+            instances.append(unpack)
 
-        for node in instances:
-            node.moveToGoodPosition(move_inputs=False, move_unconnected=False)
+            convert = sop.parent().createNode('convert')
+            convert.setFirstInput(unpack)
+            instances.append(convert)
 
-        abc.setFirstInput(None)
+            for node in instances:
+                node.moveToGoodPosition(
+                    move_inputs=False,
+                    move_unconnected=False
+                )
+
+            abc.setFirstInput(None)
 
     if missing:
         hou.ui.setStatusMessage('Done, but one or more files were missing.',
