@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import sys
 from pathlib import Path
 from uuid import uuid1
 import hou
@@ -33,7 +32,7 @@ def houdini_export():
     if len(sops) == 0:
         hou.ui.setStatusMessage('Nothing to export.',
                                 severity=hou.severityType.ImportantMessage)
-        sys.exit(1)
+        return
 
     # Remove files specified in existing import list. This is to prevent
     # accumulation of old temporary files.
@@ -79,7 +78,7 @@ def houdini_import():
     if not common.HOU_IMPORT_FILE.exists():
         hou.ui.setStatusMessage('Nothing to import.',
                                 severity=hou.severityType.ImportantMessage)
-        sys.exit(0)
+        return
 
     sops = hou.selectedNodes()
 
@@ -87,7 +86,7 @@ def houdini_import():
     if len(sops) == 0:
         hou.ui.setStatusMessage('Select exactly one SOP',
                                 severity=hou.severityType.Error)
-        sys.exit(1)
+        return
 
     # Geometry will be imported near the first SOP. We don't need the rest.
     sop = sops[0]
