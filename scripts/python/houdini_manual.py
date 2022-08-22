@@ -22,8 +22,8 @@ import common
 
 
 def houdini_export():
-    """Exports selected SOPs to Alembic files
-    in operating system's temp path."""
+    """Writes selected SOPs as Alembic files
+    inside operating system's temp path."""
     if not common.temp_path_exists(common.TEMP_PATH):
         hou.ui.setStatusMessage('Temp path is a file. Aborting.',
                                 severity=hou.severityType.Error)
@@ -35,15 +35,19 @@ def houdini_export():
                                 severity=hou.severityType.ImportantMessage)
         sys.exit(1)
 
-    # Remove files specified in existing Blender import list.
+    # Remove files specified in existing import list. This is to prevent
+    # accumulation of old temporary files.
     if not common.purge_old_files(common.BLEND_IMPORT_FILE):
         hou.ui.setStatusMessage('List file is a directory!',
                                 severity=hou.severityType.Error)
         return
 
-    # First, the file containing Alembics for Blender import
-    # needs to be removed and recreated.
+    # Recreate file containing import list for Blender.
     common.remove_file(common.BLEND_IMPORT_FILE)
+
+    # BUG: ROP Alembic SOP and other ROP SOPs do not store geometry per se.
+    # If yanking is called when this such node is selected, Houdini will
+    # throw hou.InvalidInput exception.
 
     # Configure and export selected SOPs.
     for sop in sops:
@@ -109,25 +113,43 @@ def houdini_import():
 
     # Stores instances of nodes. Used in automatic layout.
     instances = []
+    stash_sops = []
 
     # Construct the network.
-    # Special case for selected Alembic SOP and only one geometry file
-    # to import. Replace filename with path to the new one.
-    if sop.type().name() == 'alembic' and len(file_paths) == 1:
-        abc = sop
-        abc.setHardLocked(False)
-        abc.setParms({
-            'fileName': file_paths[0]
-        })
-        abc.parm('reload').pressButton()
-        abc.setHardLocked(True)
 
-    # Otherwise, create the whole network.
+    # Special case for selected Stash SOP and only one geometry file
+    # to import. Create a temporary Alembic and Convert nodes, links them up
+    # with existing Stash SOP and recooks it. Finally, it destroyes these SOPs.
+    if sop.type().name() == 'stash' and len(file_paths) == 1:
+        # Import the file with Alembic SOP.
+        abc = sop.parent().createNode('alembic')
+        abc.setParms({
+            'fileName': file_paths[0],
+            'loadmode': 1,
+            'pathattrib': 'name'
+        })
+
+        convert = sop.parent().createNode('convert')
+        convert.setFirstInput(abc)
+
+        stash = sop
+        input_original = stash.input(0)
+        stash.setFirstInput(convert)
+        stash.parm('stashinput').pressButton()
+        stash.setFirstInput(input_original)
+        stash.setComment('Imported from Blender.')
+        stash.setColor(hou.Color(0.922, 0.467, 0))
+
+        convert.destroy()
+        abc.destroy()
+
     else:
         for path in file_paths:
             abc = sop.parent().createNode('alembic')
             abc.setParms({
-                'fileName': path
+                'fileName': path,
+                'loadmode': 1,
+                'pathattrib': 'name'
             })
             abc.setHardLocked(True)
             abc.setFirstInput(sop)
@@ -141,13 +163,23 @@ def houdini_import():
             convert.setFirstInput(unpack)
             instances.append(convert)
 
-            for node in instances:
-                node.moveToGoodPosition(
-                    move_inputs=False,
-                    move_unconnected=False
-                )
+            stash = sop.parent().createNode('stash')
+            stash.setFirstInput(convert)
+            stash.setComment('Imported from Blender.')
+            stash.setColor(hou.Color(0.922, 0.467, 0))
+            stash.parm('stashinput').pressButton()
+            stash_sops.append(stash)
 
-            abc.setFirstInput(None)
+    # Everything but the Stash SOP is no longer necessary.
+    for node in instances:
+        node.destroy()
+
+    # Move Stash SOPs to better positions.
+    for node in stash_sops:
+        node.moveToGoodPosition(
+            move_inputs=False,
+            move_unconnected=False
+        )
 
     if missing:
         hou.ui.setStatusMessage('Done, but one or more files were missing.',
