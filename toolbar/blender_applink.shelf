@@ -10,7 +10,7 @@
     <memberTool name="import_from_blender"/>
   </toolshelf>
 
-  <tool name="export_to_blender" label="Export" icon="hicon:/SVGIcons.index?SOP_alembic.svg">
+  <tool name="export_to_blender" label="Yank" icon="hicon:/SVGIcons.index?SOP_alembic.svg">
     <script scriptType="python"><![CDATA[import houdini_manual
 import importlib
 import common
@@ -19,7 +19,7 @@ importlib.reload(common)
 houdini_manual.houdini_export()]]></script>
   </tool>
 
-  <tool name="import_from_blender" label="Import" icon="hicon:/SVGIcons.index?SOP_alembic.svg">
+  <tool name="import_from_blender" label="Paste" icon="hicon:/SVGIcons.index?SOP_alembic.svg">
     <script scriptType="python"><![CDATA[import houdini_manual
 import importlib
 importlib.reload(houdini_manual)
