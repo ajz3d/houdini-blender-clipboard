@@ -1,12 +1,13 @@
 #+STARTUP: indent
-* Blender-Houdini Clipboard
-This program automates on-demand geometry interchange between Houdini's SOPs and Blender using Alembic file format as a medium. It works similarily to typical clipboard, with the only difference being in location of "copied" files, which in this case is operating system's temporary directory.
+* Houdini-Blender Clipboard
+This program automates ad-hoc geometry interchange between Houdini's SOPs and Blender using Alembic file format as a medium.
+It works similarily to typical clipboard, with the only difference being in location of yanked data, which in this case is not random access memory, but operating system's temporary directory.
 
 With this program you can:
 - effortlessly export selected SOPs from Houdini and load them in Blender,
 - export selected objects from Blender and import them in the vicinity of currently selected SOP.
 
-All in two clicks.
+All with two mouse clicks.
 
 ** Installation
 1. Clone the repository into ~$HOUDINI_USER_PREF_DIR/packages~:
@@ -21,30 +22,38 @@ cp houdini-blender-applink/houdini-blender-applink.json ./
    #+end_src
 3. Symlink ~hou-blend-clipboard/scripts/python~ to addons directory of your Blender installation (~~/.config/blender/#.##/scripts/addons~):
    #+begin_src sh
-ln -sf $HOUDINI_USER_PREF_DIR/packages/houdini-blender-clipboard/scripts/python ~/.config/blender/#.##/scripts/addons/houdini_blender
+ln -sf "$HOUDINI_USER_PREF_DIR/packages/houdini-blender-clipboard/scripts/python" ~/.config/blender/#.##/scripts/addons/houdini_blender
   #+end_src
 4. Open Houdini and add "Blender Clipboard" to your shelf set.
 5. Open Blender and enable "Houdini Clipboard" Import-Export addon.
 
-*Note:* This program *has not been* tested on Windows or MacOS.
+*Note:* This program *has not been* tested neither on Windows nor on MacOS.
 
 ** How to Use
 *** Exporting from Houdini
 Make sure that geometry which you want to export has ~name~ primitive attribute. Value of this attribute is used as object name in Blender.
 
-In order to export ~creaseweight~ attribute, you need to set *object node* containing your SOP network(s) to "Render Polygons as Subdivision" and choose "OpenSubdiv Catmull-Clark" from the list.
-
 With at least one selected SOP, go to "Blender Clipboard" shelf and press the "Export" button.
 
-*** Importing from Houdini
-Open 3D View's sidebar (~n~ key) and switch to "Houdini" tab. Click the "Import" button. Objects from Alembic file(s) will be imported into currently selected collection.
+*Note:* In order to export ~creaseweight~ attribute, you need to set *object node* containing your SOP network(s) to "Render Polygons as Subdivision" and then choose "OpenSubdiv Catmull-Clark" from the list.
 
-If object of the same name already exists in the scene, it will not be overwitten. Instead, an object with different name will be created (~Box~, ~Box.001~, etc.)
+*** Importing from Houdini
+Open 3D View's sidebar (~n~ key) and switch to "Houdini" tab. Click the "Import" button.
+Objects from Alembic file(s) will be imported into currently selected collection.
+
+If object of the same name already exists in the scene, it will not be overwitten.
+Instead, an object with different name will be created (~Box~, ~Box.001~, etc.)
 
 *** Exporting from Blender
-Select objects that you want to export, open 3D View's sidebar and switch to "Houdini" tab. Click the "Export" button.
+Select objects that you want to export, open 3D View's sidebar and switch to "Houdini" tab.
+Click the "Yank" button.
 
-Only ~MESH~ objects will be exported.
+Only objects of type ~MESH~ will be exported.
+
+*Note:* In order to export subdivision creases, a *subdivision modifier* must be present on exported objects. It can be set to 0 subdivisions, but it must exist.
 
 *** Importing from Blender
-Select at least one SOP, then press "Import" button from the "Blender Clipboard" shelf. The program will create a network of "Alembic" → "Unpack" → "Convert" SOPs which unpacks and converts geometry to polygons. "Alembic" SOP will be hardlocked.
+Select one SOP, then press "Import" button from the "Blender Clipboard" shelf.
+The program will create a Stash SOP piped into selected SOP's output.
+
+If selected SOP is a Stash, then it will be updated with imported content.
