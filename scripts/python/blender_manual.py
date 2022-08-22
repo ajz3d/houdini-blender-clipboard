@@ -131,8 +131,8 @@ class HoudiniClipboardPanel(bpy.types.Panel):
         # I'm not sure if it's possible as there seems to be no way of
         # knowing what objects reside in Alembic files.
         # TODO: Add a toggle which enables exporting objects to separate files.
-        row.operator(HoudiniImportOp.bl_idname, icon='PASTEDOWN')
         row.operator(HoudiniExportOp.bl_idname, icon='COPYDOWN')
+        row.operator(HoudiniImportOp.bl_idname, icon='PASTEDOWN')
 
 
 def file_exists(file_path):
