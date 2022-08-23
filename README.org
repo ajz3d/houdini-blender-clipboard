@@ -2,13 +2,11 @@
 * Houdini-Blender Clipboard
 This program automates geometry exchange between Houdini's SOPs and Blender using Alembic file format as a medium.
 It works similarly to your typical clipboard.
-The only difference is that yanked data is not stored in volatile memory, but physically in the file system (inside operating system's temporary directory)
+The only difference is that yanked data is not stored in volatile memory, but physically on the file system (inside operating system's temporary directory)
 
-With this program you can:
+With this program, with a single click you can:
 - effortlessly export selected SOPs from Houdini and load them in Blender,
 - export selected objects from Blender and import them in the vicinity of currently selected SOP.
-
-All with two mouse clicks.
 
 ** Use Case
 The main application of the program is to make ad hoc destructive (non-procedural) changes to geometry in other software a seamless process.
@@ -30,14 +28,19 @@ You select one or more SOPs that you want to modify and hit the "Yank" button.
 Then, you switch to Blender and hit the "Paste" button to place yanked geometry into the scene.
 When you're done making changes, you press the "Yank" button in Blender, and with one SOP selected in Houdini, you press the "Paste" button.
 
-*TIP:* Once you decide that the object you're working on is finished, you might want to export geometry from Stash SOPs created by this program to file(s), and then replace them with operators capable of referencing them (File, Alembic, GLTF, etc.)
+*TIP:* Once you decide that the object you're working on is finished, you might want to export geometry from Stash SOPs created by this program into file(s), and then replace stashes with operators capable of referencing those files (like File, Alembic, GLTF, etc.)
 
 ** Why Alembic?
 Four reasons:
-- unlike FBX, it's a free and open source format,
+- unlike FBX, it's an open format,
 - it's reliable,
 - it supports custom attributes (like subdivision crease weights),
 - it supports animation (see: "Caveats").
+
+** Requirements
+This program was tested on Houdini 19.5 and Blender 3.2.2 and thus the minimal requirements are set to those versions. It should also work on older builds of those programs (Houdini with Python3 only), but if you want to test it on them, you will need to set appropriate minimal versions in ~houdini-blender-clipboard.json~ and ~scripts/python/__init__.py~ files.
+
+Please note that the program *has not* been tested neither on Windows nor on macOS.
 
 ** Installation
 1. Clone the repository into ~$HOUDINI_USER_PREF_DIR/packages~:
@@ -56,8 +59,6 @@ ln -sf "$HOUDINI_USER_PREF_DIR/packages/houdini-blender-clipboard/scripts/python
   #+end_src
 4. Open Houdini and add "Blender Clipboard" to your shelf set.
 5. Open Blender and enable "Houdini Clipboard" Import-Export add-on.
-
-*Note:* This program *has not been* tested neither on Windows nor on macOS.
 
 ** How to Use
 *** Exporting from Houdini
@@ -91,4 +92,4 @@ The program will create a Stash SOP piped into selected SOP's output.
 A special case is if selected SOP is a Stash. Here, the existing Stash operator will be updated with imported content.
 
 ** Caveats
-Animated geometry import/export is currently unsupported. The reason is that I don't need it at the moment, but I'm planning to add it in the near future.
+Animated geometry import/export is currently unsupported, but only because I didn't have time to implement it yet.
