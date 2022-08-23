@@ -39,6 +39,14 @@ def temp_path_exists(path: Path) -> bool:
         return True
 
 
+def file_exists(file_path) -> int:
+    if not file_path.exists():
+        return 1
+    if file_path.is_dir():
+        return 2
+    return 0
+
+
 def purge_old_files(path: Path) -> bool:
     """Removes all files listed in a file specified by path.
 
@@ -64,7 +72,7 @@ def purge_old_files(path: Path) -> bool:
     return True
 
 
-def remove_file(path: Path) -> None:
+def remove_file(path: Path):
     """Removes a specific file or directory."""
     if path.exists():
         if path.is_dir():

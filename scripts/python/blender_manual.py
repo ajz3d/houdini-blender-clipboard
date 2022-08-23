@@ -14,15 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import bpy
-import tempfile
-from pathlib import Path, PurePath
+from pathlib import Path
 from uuid import uuid1
 from . import common
 
-
-TEMP_PATH = Path(tempfile.gettempdir(), 'houdini_blender')
-BLEND_IMPORT_FILE = Path(TEMP_PATH, 'blend_import')
-HOU_IMPORT_FILE = Path(TEMP_PATH, 'hou_import')
 
 class HoudiniImportOp(bpy.types.Operator):
     bl_idname = "houdini.import"
@@ -36,7 +31,7 @@ class HoudiniImportOp(bpy.types.Operator):
             return {'CANCELLED'}
 
         # Check if import file exists.
-        file_present = file_exists(BLEND_IMPORT_FILE)
+        file_present = common.file_exists(common.BLEND_IMPORT_FILE)
         if file_present == 1:
             self.report({'INFO'}, 'Nothing to import.')
             return {'CANCELLED'}
@@ -47,7 +42,7 @@ class HoudiniImportOp(bpy.types.Operator):
         file_paths = []
         missing = False
 
-        with BLEND_IMPORT_FILE.open('r', encoding='utf-8') as source_file:
+        with common.BLEND_IMPORT_FILE.open('r', encoding='utf-8') as source_file:
             for index, line in enumerate(source_file.readlines()):
                 if not Path(line.strip()).exists():
                     missing = True
@@ -132,14 +127,6 @@ class HoudiniClipboardPanel(bpy.types.Panel):
         # TODO: Add a toggle which enables exporting objects to separate files.
         row.operator(HoudiniExportOp.bl_idname, icon='COPYDOWN')
         row.operator(HoudiniImportOp.bl_idname, icon='PASTEDOWN')
-
-
-def file_exists(file_path):
-    if not file_path.exists():
-        return 1
-    if file_path.is_dir():
-        return 2
-    return 0
 
 
 classes = (
