@@ -4,7 +4,7 @@ This program automates geometry exchange between Houdini's SOPs and Blender usin
 It works similarly to your typical clipboard.
 The only difference is that yanked data is not stored in volatile memory, but physically on the file system (inside operating system's temporary directory)
 
-With this program, with a single click you can:
+With this program, with two mouse clicks you can:
 - effortlessly export selected SOPs from Houdini and load them in Blender,
 - export selected objects from Blender and import them in the vicinity of currently selected SOP.
 
