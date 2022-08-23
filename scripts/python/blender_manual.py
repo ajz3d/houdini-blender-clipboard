@@ -43,7 +43,6 @@ class HoudiniImportOp(bpy.types.Operator):
         if file_present == 2:
             self.report({'ERROR'}, 'List file is a directory.')
             return {'CANCELLED'}
-        blender_import()
 
         file_paths = []
         missing = False
@@ -141,12 +140,6 @@ def file_exists(file_path):
     if file_path.is_dir():
         return 2
     return 0
-
-
-def blender_import():
-    """Reads the list from file and imports it into the scene."""
-    # Read blend_file
-    pass
 
 
 classes = (
