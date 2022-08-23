@@ -1,7 +1,8 @@
 #+STARTUP: indent
 * Houdini-Blender Clipboard
-This program automates ad-hoc geometry interchange between Houdini's SOPs and Blender using Alembic file format as a medium.
-It works similarily to typical clipboard, with the only difference being in location of yanked data, which in this case is not random access memory, but operating system's temporary directory.
+This program automates geometry exchange between Houdini's SOPs and Blender using Alembic file format as a medium.
+It works similarly to your typical clipboard.
+The only difference is that yanked data is not stored in volatile memory, but physically in the file system (inside operating system's temporary directory)
 
 With this program you can:
 - effortlessly export selected SOPs from Houdini and load them in Blender,
@@ -9,39 +10,70 @@ With this program you can:
 
 All with two mouse clicks.
 
+** Use Case
+The main application of the program is to make ad hoc destructive (non-procedural) changes to geometry in other software a seamless process.
+
+For example, while modeling an object in Houdini you decide that some operations would be faster to carry out with traditional modeling techniques in some other program.
+Normally, in order to export geometry from Houdini, several steps are required.
+You need to create a ROP SOP, provide it with a target path and configure it.
+It's also possible to export geometry via the right-click context menu, but this method doesn't offer any configuration options.
+
+Importing geometry in the target program also requires several actions.
+You also need to remember path to the exported file.
+
+Same for re-importing modified geometry to Houdini.
+All of this quickly adds up and makes the whole process a hassle and a real time waster.
+
+Houdini-Blender Clipboard attempts to solve this by providing you with two buttons: one for yanking the geometry, the other for pasting it into the scene.
+This makes the export-import process virtually seamless.
+You select one or more SOPs that you want to modify and hit the "Yank" button.
+Then, you switch to Blender and hit the "Paste" button to place yanked geometry into the scene.
+When you're done making changes, you press the "Yank" button in Blender, and with one SOP selected in Houdini, you press the "Paste" button.
+
+*TIP:* Once you decide that the object you're working on is finished, you might want to export geometry from Stash SOPs created by this program to file(s), and then replace them with operators capable of referencing them (File, Alembic, GLTF, etc.)
+
+** Why Alembic?
+Four reasons:
+- unlike FBX, it's a free and open source format,
+- it's reliable,
+- it supports custom attributes (like subdivision crease weights),
+- it supports animation (see: "Caveats").
+
 ** Installation
 1. Clone the repository into ~$HOUDINI_USER_PREF_DIR/packages~:
    #+begin_src sh
 cd $HOUDINI_USER_PREF_DIR/packages
-git clone ***
+git clone https://github.com/ajz3d/houdini-blender-clipboard.git
    #+end_src
    If you didn't set this environment variable, Houdini user preferences directory will be located in ~~/houdini##.#~.
 2. Copy ~houdini-blender-applink.json~ to ~$HOUDINI_USER_PREF_DIR/packages~:
    #+begin_src sh
 cp houdini-blender-applink/houdini-blender-applink.json ./
    #+end_src
-3. Symlink ~hou-blend-clipboard/scripts/python~ to addons directory of your Blender installation (~~/.config/blender/#.##/scripts/addons~):
+3. Symlink ~hou-blend-clipboard/scripts/python~ to add-ons directory of your Blender installation (~~/.config/blender/#.##/scripts/addons~):
    #+begin_src sh
 ln -sf "$HOUDINI_USER_PREF_DIR/packages/houdini-blender-clipboard/scripts/python" ~/.config/blender/#.##/scripts/addons/houdini_blender
   #+end_src
 4. Open Houdini and add "Blender Clipboard" to your shelf set.
-5. Open Blender and enable "Houdini Clipboard" Import-Export addon.
+5. Open Blender and enable "Houdini Clipboard" Import-Export add-on.
 
-*Note:* This program *has not been* tested neither on Windows nor on MacOS.
+*Note:* This program *has not been* tested neither on Windows nor on macOS.
 
 ** How to Use
 *** Exporting from Houdini
-Make sure that geometry which you want to export has ~name~ primitive attribute. Value of this attribute is used as object name in Blender.
+Make sure that geometry which you want to export has ~name~ primitive attribute.
+Value of this attribute is used for naming imported objects in Blender.
 
 With at least one selected SOP, go to "Blender Clipboard" shelf and press the "Export" button.
 
-*Note:* In order to export ~creaseweight~ attribute, you need to set *object node* containing your SOP network(s) to "Render Polygons as Subdivision" and then choose "OpenSubdiv Catmull-Clark" from the list.
+*Note:* In order to export ~creaseweight~ attribute, you need to set *object* node containing your SOP network(s) to "Render Polygons as Subdivision" and then choose "OpenSubdiv Catmull-Clark" from the list.
 
 *** Importing from Houdini
-Open 3D View's sidebar (~n~ key) and switch to "Houdini" tab. Click the "Import" button.
+Open 3D View's sidebar (~n~ key) and switch to "Houdini" tab.
+Click the "Import" button.
 Objects from Alembic file(s) will be imported into currently selected collection.
 
-If object of the same name already exists in the scene, it will not be overwitten.
+If object of the same name already exists in the scene, it will not be overwritten.
 Instead, an object with different name will be created (~Box~, ~Box.001~, etc.)
 
 *** Exporting from Blender
@@ -50,10 +82,13 @@ Click the "Yank" button.
 
 Only objects of type ~MESH~ will be exported.
 
-*Note:* In order to export subdivision creases, a *subdivision modifier* must be present on exported objects. It can be set to 0 subdivisions, but it must exist.
+*Note:* In order to export subdivision creases, a *subdivision modifier* must be present on exported objects.
 
 *** Importing from Blender
 Select one SOP, then press "Import" button from the "Blender Clipboard" shelf.
 The program will create a Stash SOP piped into selected SOP's output.
 
-If selected SOP is a Stash, then it will be updated with imported content.
+A special case is if selected SOP is a Stash. Here, the existing Stash operator will be updated with imported content.
+
+** Caveats
+Animated geometry import/export is currently unsupported. The reason is that I don't need it at the moment, but I'm planning to add it in the near future.
