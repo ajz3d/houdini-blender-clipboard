@@ -41,6 +41,8 @@ Four reasons:
 This program was tested on Houdini 19.5 and Blender 3.2.2 and thus the minimal requirements are set to those versions.
 It should also work on older builds of those programs (Houdini with Python3 only), but if you want to test it on them, you will need to set appropriate minimal versions in ~houdini-blender-clipboard.json~ and ~scripts/python/__init__.py~ files.
 
+If you intend to export heavy, high resolution geometry or animation, make sure that ~/tmp~ is large enough to accommodate that data.
+
 Please note that the program *has not* been tested neither on Windows nor on macOS.
 
 ** Installation
