@@ -20,7 +20,7 @@ import hou
 import common
 
 
-def houdini_export():
+def houdini_export(animation=False):
     """Writes selected SOPs as Alembic files
     inside operating system's temp path."""
     if not common.temp_path_exists(common.TEMP_PATH):
@@ -44,10 +44,6 @@ def houdini_export():
     # Recreate file containing import list for Blender.
     common.remove_file(common.BLEND_IMPORT_FILE)
 
-    # BUG: ROP Alembic SOP and other ROP SOPs do not store geometry per se.
-    # If yanking is called when this such node is selected, Houdini will
-    # throw hou.InvalidInput exception.
-
     # Configure and export selected SOPs.
     for sop in sops:
         if type(sop) == hou.RopNode:
@@ -63,6 +59,16 @@ def houdini_export():
             'build_from_path': 1,
             'path_attrib': 'name'
         })
+
+        # When exporting animation, add appropriate parameters.
+        # By default, use current frame range.
+        if animation:
+            frame_range = hou.playbar.frameRange()
+            abc_rop.setParms({
+                'trange': 1,
+                'f1': frame_range[0],
+                'f2': frame_range[1]
+            })
 
         hou.ui.setStatusMessage(f'Exporting {sop.name()}...')
         abc_rop.parm('execute').pressButton()
