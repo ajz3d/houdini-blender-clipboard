@@ -35,10 +35,11 @@ Four reasons:
 - unlike FBX, it's an open format,
 - it's reliable,
 - it supports custom attributes (like subdivision crease weights),
-- it supports animation (see: "Caveats").
+- it supports animation.
 
 ** Requirements
-This program was tested on Houdini 19.5 and Blender 3.2.2 and thus the minimal requirements are set to those versions. It should also work on older builds of those programs (Houdini with Python3 only), but if you want to test it on them, you will need to set appropriate minimal versions in ~houdini-blender-clipboard.json~ and ~scripts/python/__init__.py~ files.
+This program was tested on Houdini 19.5 and Blender 3.2.2 and thus the minimal requirements are set to those versions.
+It should also work on older builds of those programs (Houdini with Python3 only), but if you want to test it on them, you will need to set appropriate minimal versions in ~houdini-blender-clipboard.json~ and ~scripts/python/__init__.py~ files.
 
 Please note that the program *has not* been tested neither on Windows nor on macOS.
 
@@ -65,7 +66,9 @@ ln -sf "$HOUDINI_USER_PREF_DIR/packages/houdini-blender-clipboard/scripts/python
 Make sure that geometry which you want to export has ~name~ primitive attribute.
 Value of this attribute is used for naming imported objects in Blender.
 
-With at least one selected SOP, go to "Blender Clipboard" shelf and press the "Export" button.
+With at least one selected SOP, go to "Blender Clipboard" shelf and press the "Yank" button.
+If you want to export animated geometry, hit the "Yank(Anim)" button.
+It will export current frame range.
 
 *Note:* In order to export ~creaseweight~ attribute, you need to set *object* node containing your SOP network(s) to "Render Polygons as Subdivision" and then choose "OpenSubdiv Catmull-Clark" from the list.
 
@@ -89,7 +92,13 @@ Only objects of type ~MESH~ will be exported.
 Select one SOP, then press "Import" button from the "Blender Clipboard" shelf.
 The program will create a Stash SOP piped into selected SOP's output.
 
-A special case is if selected SOP is a Stash. Here, the existing Stash operator will be updated with imported content.
+A special case is if selected SOP is a Stash.
+Here, the existing Stash operator will be updated with imported content.
 
-** Caveats
-Animated geometry import/export is currently unsupported, but only because I didn't have time to implement it yet.
+*** Exporting animation
+The program allows for exporting animation in one-way only: from Houdini to Blender.
+The reverse is best done manually, with Alembic SOP referencing a file outside the operating system's temporary directory (residing in a more permanent location, like somewhere in ~$HIP~ or ~$JOB~ trees).
+
+The rationale is that stash SOP and operators that are hardlocked are capable of storing single frames only.
+Therefore, I currently don't see any reasonable way of embedding imported Alembic animation into ~.hip~ files.
+Embedding animation would also be a terrible idea, as it would cause ~.hip~ files to easily balloon to ludicrous sizes.
